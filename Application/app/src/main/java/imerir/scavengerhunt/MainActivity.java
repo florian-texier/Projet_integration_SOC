@@ -1,18 +1,24 @@
 package imerir.scavengerhunt;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -26,6 +32,10 @@ import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.MonitorNotifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import android.provider.Settings.Secure;
 
 import java.util.Collection;
 
@@ -36,9 +46,11 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     static final int REQUEST_PERMCAM = 1;
 
     private BeaconManager beaconManager;
+    RequestQueue mRequestQueue;
 
     TextView mTextView;
     TextView mDistance;
+
 
     void displayText(final String message) {
         runOnUiThread(new Runnable() {
@@ -53,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     BarcodeDetector mDetector;
     CameraSource mCamera;
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -64,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mRequestQueue = Volley.newRequestQueue(this);
 
         mTextView = findViewById(R.id.textView);
         mDistance = findViewById(R.id.distance);
@@ -82,8 +97,16 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             }
                         });
             }
-        }
-        else{
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                showAlertDialog("This app needs location access",
+                        "Please grant location access so this app can detect beacons.", new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE}, REQUEST_PERMISSION);
+                            }
+                        });
+            }
+        } else {
             setupDetectorAndCamera();
         }
     }
@@ -102,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             }
         }
         if (requestCode == REQUEST_PERMCAM) {
-            if(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 setupDetectorAndCamera(); // continue the setup
             } else {
                 Log.e(TAG, "Permission was denied or request was cancelled.");
@@ -146,8 +169,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
             @Override
             public void didRangeBeaconsInRegion(Collection<Beacon> collection, Region region) {
-                Log.d("-----------------------", "distance"+collection);
-                for(Beacon beacon : collection) {
+                for (Beacon beacon : collection) {
                     Log.i(TAG, "Detected beacon : " + beacon.getId1());
                     Log.i(TAG, "Detected beacon @ distance " + beacon.getDistance());
                     final double dist = beacon.getDistance();
@@ -178,6 +200,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         });
 
         try {
+
             Region region = new Region("Totorama", null, null, null);
             beaconManager.startMonitoringBeaconsInRegion(region);
             beaconManager.startRangingBeaconsInRegion(region);
@@ -194,7 +217,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
         mDetector.setProcessor(new Detector.Processor<Barcode>() {
             @Override
-            public void release() { }
+            public void release() {
+            }
 
             @Override
             public void receiveDetections(Detector.Detections<Barcode> detections) {
@@ -203,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             }
         });
 
-        if(!mDetector.isOperational()) {
+        if (!mDetector.isOperational()) {
             mTextView.setText("Could not set up the detector!\nPlease update or upgrade your tablet (consider an iPhone X).");
             return;
         }
@@ -230,9 +254,40 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     void processBarcodes(SparseArray<Barcode> barcodes) {
         if (barcodes.size() != 0) {
-            displayText(barcodes.valueAt(0).displayValue);
+            String url = barcodes.valueAt(0).displayValue;
+            displayText(url);
+
         } else {
             displayText("No barcode detected.");
         }
+    }
+
+    void getHttpRequest(String message) {
+        String endpointUrl = "https://perso.imerir.com/pgrabolosa/2016/ducks/";
+
+        Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                String message = "";
+                try {
+                    JSONArray ducks = response.getJSONArray("images");
+                    message = String.format("Il y a %d canards", ducks.length());
+
+                    if (ducks.length() > 0) {
+                        message += " et le 1er s'appelle " + ducks.getJSONObject(0).getString("name");
+                    }
+
+                } catch (Exception e) {
+                    message = "Erreur de lecture du JSON";
+                } finally {
+                    mEditText.setText(message);
+                }
+            }
+        };
+    }
+
+    public static String getDeviceId(Context context) {
+        String androidId = Settings.Secure.getString(context.getContentResolver(),Settings.Secure.ANDROID_ID) + Build.SERIAL;
+        return androidId;
     }
 }
