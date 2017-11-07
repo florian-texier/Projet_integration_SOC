@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     private BeaconManager beaconManager;
 
     TextView mTextView;
+    TextView mDistance;
 
     void displayText(final String message) {
         runOnUiThread(new Runnable() {
@@ -64,7 +65,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mTextView = (TextView) findViewById(R.id.textView);
+        mTextView = findViewById(R.id.textView);
+        mDistance = findViewById(R.id.distance);
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -113,8 +115,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     protected void onResume() {
         super.onResume();
 
-
-
         beaconManager = BeaconManager.getInstanceForApplication(this);
 
         final String iBeaconLayout = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
@@ -142,18 +142,24 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     public void onBeaconServiceConnect() {
 
         Log.i(TAG, "beaconServiceConnected");
-
         beaconManager.addRangeNotifier(new RangeNotifier() {
 
             @Override
             public void didRangeBeaconsInRegion(Collection<Beacon> collection, Region region) {
+                Log.d("-----------------------", "distance"+collection);
                 for(Beacon beacon : collection) {
                     Log.i(TAG, "Detected beacon : " + beacon.getId1());
                     Log.i(TAG, "Detected beacon @ distance " + beacon.getDistance());
+                    final double dist = beacon.getDistance();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mDistance.setText(Double.toString(dist));
+                        }
+                    });
                 }
             }
         });
-
         beaconManager.addMonitorNotifier(new MonitorNotifier() {
             @Override
             public void didEnterRegion(Region region) {
@@ -172,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         });
 
         try {
-            Region region = new Region("Totorama", Identifier.parse("623c4c56-34e7-4e55-9257-bde28c1cc51a"), null, null);
+            Region region = new Region("Totorama", null, null, null);
             beaconManager.startMonitoringBeaconsInRegion(region);
             beaconManager.startRangingBeaconsInRegion(region);
         } catch (RemoteException e) {
