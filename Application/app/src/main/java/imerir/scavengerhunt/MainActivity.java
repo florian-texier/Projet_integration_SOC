@@ -3,6 +3,7 @@ package imerir.scavengerhunt;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.RemoteException;
@@ -16,9 +17,16 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
 
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.ImageRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.android.volley.NetworkResponse;
+
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -32,10 +40,12 @@ import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.MonitorNotifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.provider.Settings.Secure;
+import android.widget.Toast;
 
 import java.util.Collection;
 
@@ -256,14 +266,16 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         if (barcodes.size() != 0) {
             String url = barcodes.valueAt(0).displayValue;
             displayText(url);
+            switchPager();
+            getHttpRequest(url);
 
         } else {
             displayText("No barcode detected.");
         }
     }
 
-    void getHttpRequest(String message) {
-        String endpointUrl = "https://perso.imerir.com/pgrabolosa/2016/ducks/";
+    void getHttpRequest(String url) {
+        String endpointUrl = url;
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
@@ -280,14 +292,78 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                 } catch (Exception e) {
                     message = "Erreur de lecture du JSON";
                 } finally {
-                    mEditText.setText(message);
+                    Log.d(TAG,message);
+                }
+            }
+
+            protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                String responseString = "";
+                if (response != null) {
+                    responseString = String.valueOf(response.statusCode);
+                }
+                return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+            }
+        };
+
+        Response.ErrorListener onError = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG,"Erreur lors de la requête");
+            }
+        };
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, endpointUrl, null, onSuccess, onError);
+
+        mRequestQueue.add(request);
+    }
+
+    void PostHttpRequest(String url) {
+        String endpointUrl =url;
+
+        JSONObject postData = new JSONObject();
+        try {
+            postData.put("a", 5);
+            postData.put("b", 10);
+        } catch (Exception e) {
+            // do nothing
+        }
+
+        Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                String message = "";
+                try {
+                    int sum = response.getInt("sum");
+                    Toast toast = Toast.makeText(MainActivity.this, "Sum = " + sum, Toast.LENGTH_LONG);
+                    toast.show();
+                } catch (Exception e) {
+                    Toast toast = Toast.makeText(MainActivity.this, "Erreur de lecture du JSON", Toast.LENGTH_LONG);
+                    toast.show();
                 }
             }
         };
+
+        Response.ErrorListener onError = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d(TAG,"Erreur lors de la requête");
+            }
+        };
+
+
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, endpointUrl, postData, onSuccess, onError);
+
+        mRequestQueue.add(request);
     }
 
     public static String getDeviceId(Context context) {
         String androidId = Settings.Secure.getString(context.getContentResolver(),Settings.Secure.ANDROID_ID) + Build.SERIAL;
         return androidId;
+    }
+
+    void switchPager(){
+        Intent i = new Intent(MainActivity.this, ListeActivity.class);
+        MainActivity.this.startActivity(i);
     }
 }
