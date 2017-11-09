@@ -363,6 +363,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     void switchPager(){
+        finish();
+
         Intent i = new Intent(MainActivity.this, ListeActivity.class);
         MainActivity.this.startActivity(i);
     }
