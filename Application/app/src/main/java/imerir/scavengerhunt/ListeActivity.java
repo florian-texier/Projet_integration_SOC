@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -36,8 +37,10 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class ListeActivity extends AppCompatActivity {
@@ -45,6 +48,7 @@ public class ListeActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSION = 1;
     static final int REQUEST_IMAGE_CAPTURE = 1;
     protected static final String TAG = "Scavenger Hunt";
+    String mCurrentPhotoPath;
 
     ListView mListView;
     Button mSendButton;
@@ -70,15 +74,6 @@ public class ListeActivity extends AppCompatActivity {
 
         // DataBind ListView with items from ArrayAdapter
         mListView.setAdapter(arrayAdapter);
-
-        File folder = new File(getFilesDir() + "/ScavengerHunt");
-        Log.d(TAG, "toto "+getFilesDir());
-        Log.d(TAG, ""+folder);
-
-        if (folder.exists() == false) {
-            boolean toto = folder.mkdirs();
-            Log.d(TAG, "titi "+toto);
-        }
 
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -136,13 +131,28 @@ public class ListeActivity extends AppCompatActivity {
     }
 
     private void takePictureIntent() {
-        /*Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(getFilesDir(), "/ScavengerHunt/Attachment" + ".jpg")));
-        startActivityForResult(takePictureIntent, 1001);*/
 
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Log.d(TAG, ex.toString());
+
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.android.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                galleryAddPic();
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+
+            }
         }
 
     }
@@ -155,67 +165,31 @@ public class ListeActivity extends AppCompatActivity {
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(TAG, "10");
-        if (resultCode == RESULT_OK) {
-            Log.d(TAG, "80");
-            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION);
-                return;
-            }
-            Log.d(TAG, "6");
-            Location location = (Location) lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            Log.d(TAG, "7");
-            double longitude = location.getLongitude();
-            double latitude = location.getLatitude();
-            File f = new File(getFilesDir(),"/ScavengerHunt/Attachment" + ".jpg");
-            geoTag(f.getAbsolutePath(),latitude,longitude);
-            Log.d(TAG, "8");
-        }
-    }
-
-    public void geoTag(String filename, double latitude, double longitude){
-        ExifInterface exif;
-
-        try {
-            exif = new ExifInterface(filename);
-            int num1Lat = (int)Math.floor(latitude);
-            int num2Lat = (int)Math.floor((latitude - num1Lat) * 60);
-            double num3Lat = (latitude - ((double)num1Lat+((double)num2Lat/60))) * 3600000;
-
-            int num1Lon = (int)Math.floor(longitude);
-            int num2Lon = (int)Math.floor((longitude - num1Lon) * 60);
-            double num3Lon = (longitude - ((double)num1Lon+((double)num2Lon/60))) * 3600000;
-
-            exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, num1Lat+"/1,"+num2Lat+"/1,"+num3Lat+"/1000");
-            exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, num1Lon+"/1,"+num2Lon+"/1,"+num3Lon+"/1000");
-
-
-            if (latitude > 0) {
-                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N");
-            } else {
-                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "S");
-            }
-
-            if (longitude > 0) {
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");
-            } else {
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "W");
-            }
-
-            exif.saveAttributes();
-        } catch (IOException e) {
-            Log.e("PictureActivity", e.getLocalizedMessage());
-        }
 
     }
 
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+    }
 
 }
