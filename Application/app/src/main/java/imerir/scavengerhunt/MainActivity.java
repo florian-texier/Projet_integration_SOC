@@ -12,7 +12,6 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
@@ -21,11 +20,8 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.HttpHeaderParser;
-import com.android.volley.toolbox.ImageRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.android.volley.NetworkResponse;
 
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
@@ -41,11 +37,9 @@ import org.altbeacon.beacon.MonitorNotifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.provider.Settings.Secure;
 import android.widget.Toast;
 
 import java.util.Collection;
@@ -55,8 +49,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     private static final int REQUEST_PERMISSION = 1;
     protected static final String TAG = "Scavenger Hunt";
     static final int REQUEST_PERMCAM = 1;
-    String contURl = "https://routeurint.mignolet.fr";
-    JSONObject json;
+    String contURl = "https://routerint.mignolet.fr";
+    String id = null;
 
     private BeaconManager beaconManager;
     RequestQueue mRequestQueue;
@@ -192,8 +186,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             mDistance.setText(Double.toString(dist));
                         }
                     });
-                    if (dist < 0.5){
+                    if (dist < 2.0){
                         postHttpRequest(contURl+"/inscript");
+                        switchPager();
                     }
                 }
             }
@@ -214,17 +209,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                 Log.i(TAG, "didDetermineStateForRegion = " + i);
             }
         });
-
-        try {
             getHttpRequest(contURl+"/beaconInscript");
-            String id = json.getJSONObject("value").getString("uid");
-            Region region = new Region("Totorama", Identifier.parse(id), null, null);
-            beaconManager.startMonitoringBeaconsInRegion(region);
-            beaconManager.startRangingBeaconsInRegion(region);
 
-        } catch (RemoteException | JSONException e) {
-            Log.e(TAG, e.getMessage());
-        }
     }
 
     void setupDetectorAndCamera() {
@@ -285,12 +271,22 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     void getHttpRequest(String url) {
         String endpointUrl = url;
+        Log.d(TAG,url);
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-
-                json = response;
+                Log.d(TAG, response.toString());
+                try {
+                    id = response.getJSONObject("message").getString("uid");
+                    Region region = new Region("Totorama", Identifier.parse(id), null, null);
+                    beaconManager.startMonitoringBeaconsInRegion(region);
+                    beaconManager.startRangingBeaconsInRegion(region);
+                } catch (JSONException e) {
+                    Log.e(TAG, e.getMessage());
+                } catch (RemoteException e) {
+                    Log.e(TAG, e.getMessage());
+                }
             }
 
         };
@@ -305,6 +301,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, endpointUrl, null, onSuccess, onError);
 
         mRequestQueue.add(request);
+
     }
 
     void postHttpRequest(String url) {

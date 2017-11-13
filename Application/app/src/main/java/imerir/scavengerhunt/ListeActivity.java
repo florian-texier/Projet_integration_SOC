@@ -53,6 +53,7 @@ public class ListeActivity extends AppCompatActivity {
     Button mSendButton;
     RequestQueue mRequestQueue;
     String mCurrentPhotoPath;
+    File photoFile = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,7 +136,7 @@ public class ListeActivity extends AppCompatActivity {
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
-            File photoFile = null;
+            photoFile = null;
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
@@ -148,7 +149,6 @@ public class ListeActivity extends AppCompatActivity {
                         "com.example.android.fileprovider",
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                galleryAddPic();
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
 
             }
@@ -172,13 +172,6 @@ public class ListeActivity extends AppCompatActivity {
         return image;
     }
 
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-    }
 
     void switchPager() {
         finish();
@@ -197,8 +190,7 @@ public class ListeActivity extends AppCompatActivity {
             Location location = (Location) lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             double longitude = location.getLongitude();
             double latitude = location.getLatitude();
-            File f = new File(getFilesDir(),"/ScavengerHunt/Attachment" + ".jpg");
-            geoTag(f.getAbsolutePath(),latitude,longitude);
+            geoTag(photoFile.getAbsolutePath(),latitude,longitude);
         }
     }
 

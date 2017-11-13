@@ -1,15 +1,20 @@
 package imerir.scavengerhunt;
 
+import android.graphics.Bitmap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import org.altbeacon.beacon.BeaconManager;
 
+import java.io.File;
+import java.util.ArrayList;
+
 public class SendPicture extends AppCompatActivity {
 
     private BeaconManager beaconManager;
     TextView mDistance;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
