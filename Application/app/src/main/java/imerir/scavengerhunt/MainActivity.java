@@ -42,6 +42,7 @@ import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.provider.Settings.Secure;
@@ -54,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     private static final int REQUEST_PERMISSION = 1;
     protected static final String TAG = "Scavenger Hunt";
     static final int REQUEST_PERMCAM = 1;
+    String contURl = "https://routeurint.mignolet.fr";
+    JSONObject json;
 
     private BeaconManager beaconManager;
     RequestQueue mRequestQueue;
@@ -189,6 +192,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             mDistance.setText(Double.toString(dist));
                         }
                     });
+                    if (dist < 0.5){
+                        postHttpRequest(contURl+"/inscript");
+                    }
                 }
             }
         });
@@ -210,11 +216,13 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         });
 
         try {
-
-            Region region = new Region("Totorama", null, null, null);
+            getHttpRequest(contURl+"/beaconInscript");
+            String id = json.getJSONObject("value").getString("uid");
+            Region region = new Region("Totorama", Identifier.parse(id), null, null);
             beaconManager.startMonitoringBeaconsInRegion(region);
             beaconManager.startRangingBeaconsInRegion(region);
-        } catch (RemoteException e) {
+
+        } catch (RemoteException | JSONException e) {
             Log.e(TAG, e.getMessage());
         }
     }
@@ -266,8 +274,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         if (barcodes.size() != 0) {
             String url = barcodes.valueAt(0).displayValue;
             displayText(url);
+            postHttpRequest(url);
             switchPager();
-            getHttpRequest(url);
+
 
         } else {
             displayText("No barcode detected.");
@@ -280,29 +289,10 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                String message = "";
-                try {
-                    JSONArray ducks = response.getJSONArray("images");
-                    message = String.format("Il y a %d canards", ducks.length());
 
-                    if (ducks.length() > 0) {
-                        message += " et le 1er s'appelle " + ducks.getJSONObject(0).getString("name");
-                    }
-
-                } catch (Exception e) {
-                    message = "Erreur de lecture du JSON";
-                } finally {
-                    Log.d(TAG,message);
-                }
+                json = response;
             }
 
-            protected Response<String> parseNetworkResponse(NetworkResponse response) {
-                String responseString = "";
-                if (response != null) {
-                    responseString = String.valueOf(response.statusCode);
-                }
-                return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
-            }
         };
 
         Response.ErrorListener onError = new Response.ErrorListener() {
@@ -317,13 +307,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         mRequestQueue.add(request);
     }
 
-    void PostHttpRequest(String url) {
+    void postHttpRequest(String url) {
         String endpointUrl =url;
 
         JSONObject postData = new JSONObject();
         try {
-            postData.put("a", 5);
-            postData.put("b", 10);
+            postData.put("id", getDeviceId(this));
         } catch (Exception e) {
             // do nothing
         }
@@ -350,8 +339,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             }
         };
 
-
-
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, endpointUrl, postData, onSuccess, onError);
 
         mRequestQueue.add(request);
@@ -359,7 +346,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     public static String getDeviceId(Context context) {
         String androidId = Settings.Secure.getString(context.getContentResolver(),Settings.Secure.ANDROID_ID) + Build.SERIAL;
+        Log.d(TAG,androidId);
         return androidId;
+
     }
 
     void switchPager(){
