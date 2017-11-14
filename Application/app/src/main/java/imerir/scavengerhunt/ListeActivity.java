@@ -48,6 +48,7 @@ public class ListeActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSION = 1;
     static final int REQUEST_IMAGE_CAPTURE = 1;
     protected static final String TAG = "Scavenger Hunt";
+    String contURl = "https://routerint.mignolet.fr";
 
     ListView mListView;
     Button mSendButton;
@@ -63,15 +64,15 @@ public class ListeActivity extends AppCompatActivity {
         mListView = findViewById(R.id.itemList);
         mSendButton = findViewById(R.id.sendButton);
 
-        //String[] item = getHttpRequest("toto");
+       // getHttpRequest(contURl+"/liste");
+
         String[] item = {"toto", "titi"};
 
         // Create a List from String Array elements
         final List<String> item_list = new ArrayList<String>(Arrays.asList(item));
 
         // Create an ArrayAdapter from List
-        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>
-                (this, android.R.layout.simple_list_item_1, item_list);
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, item_list);
 
         // DataBind ListView with items from ArrayAdapter
         mListView.setAdapter(arrayAdapter);

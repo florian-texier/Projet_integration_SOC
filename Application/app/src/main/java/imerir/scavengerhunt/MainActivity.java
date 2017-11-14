@@ -186,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             mDistance.setText(Double.toString(dist));
                         }
                     });
-                    if (dist < 2.0){
+                    if (dist < 3.0){
                         postHttpRequest(contURl+"/inscript");
                         switchPager();
                     }
@@ -294,6 +294,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                Log.d(TAG,error.getMessage());
                 Log.d(TAG,"Erreur lors de la requête");
             }
         };
