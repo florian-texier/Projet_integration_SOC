@@ -3,12 +3,11 @@ package imerir.scavengerhunt;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
-import android.media.ExifInterface;
+import android.support.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -22,14 +21,11 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
-import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -40,7 +36,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -69,7 +64,7 @@ public class ListeActivity extends AppCompatActivity {
         mSendButton = findViewById(R.id.sendButton);
 
         getHttpRequest(contURl+"/liste");
-        item_list = new ArrayList<String>();
+        item_list = new ArrayList<>();
 
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -82,7 +77,6 @@ public class ListeActivity extends AppCompatActivity {
     }
 
     void getHttpRequest(String url) {
-        String endpointUrl = url;
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
@@ -99,7 +93,7 @@ public class ListeActivity extends AppCompatActivity {
 
                     if (!item_list.isEmpty()){
                         // Create an ArrayAdapter from List
-                        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(ListeActivity.this, android.R.layout.simple_list_item_1, item_list);
+                        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(ListeActivity.this, android.R.layout.simple_list_item_1, item_list);
 
                         // DataBind ListView with items from ArrayAdapter
                         mListView.setAdapter(arrayAdapter);
@@ -126,7 +120,7 @@ public class ListeActivity extends AppCompatActivity {
             }
         };
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, endpointUrl, null, onSuccess, onError);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, onSuccess, onError);
 
         mRequestQueue.add(request);
 
@@ -189,7 +183,7 @@ public class ListeActivity extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION);
                 return;
             }
-            Location location = (Location) lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            Location location = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             double longitude = location.getLongitude();
             double latitude = location.getLatitude();
             geoTag(photoFile.getAbsolutePath(),latitude,longitude);

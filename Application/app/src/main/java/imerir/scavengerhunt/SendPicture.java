@@ -28,6 +28,7 @@ public class SendPicture extends AppCompatActivity {
     private BeaconManager beaconManager;
     TextView mDistance;
     Button select;
+    Button sendPicture;
     ImageView image;
 
     File imgFile;
@@ -38,7 +39,18 @@ public class SendPicture extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_send_picture);
         select = findViewById(R.id.selectpicture);
+        sendPicture = findViewById(R.id.button2);
         image = findViewById(R.id.imageView);
+
+        sendPicture.setEnabled(false);
+
+        sendPicture.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+
+            }
+        });
 
         select.setOnClickListener(new View.OnClickListener() {
             @Override
