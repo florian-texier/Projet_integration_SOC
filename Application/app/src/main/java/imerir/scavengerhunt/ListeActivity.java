@@ -31,6 +31,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -55,34 +56,20 @@ public class ListeActivity extends AppCompatActivity {
     RequestQueue mRequestQueue;
     String mCurrentPhotoPath;
     File photoFile = null;
+    List<String> item_list;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_liste);
 
+        mRequestQueue = Volley.newRequestQueue(this);
+
         mListView = findViewById(R.id.itemList);
         mSendButton = findViewById(R.id.sendButton);
 
-       // getHttpRequest(contURl+"/liste");
-
-        String[] item = {"toto", "titi"};
-
-        // Create a List from String Array elements
-        final List<String> item_list = new ArrayList<String>(Arrays.asList(item));
-
-        // Create an ArrayAdapter from List
-        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, item_list);
-
-        // DataBind ListView with items from ArrayAdapter
-        mListView.setAdapter(arrayAdapter);
-
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                takePictureIntent();
-            }
-        });
+        getHttpRequest(contURl+"/liste");
+        item_list = new ArrayList<String>();
 
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -100,19 +87,33 @@ public class ListeActivity extends AppCompatActivity {
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                String message = "";
+                Log.d(TAG,response.toString());
                 try {
-                    JSONArray ducks = response.getJSONArray("images");
-                    message = String.format("Il y a %d canards", ducks.length());
+                    JSONArray liste = response.getJSONObject("message").getJSONArray("liste");
 
-                    if (ducks.length() > 0) {
-                        message += " et le 1er s'appelle " + ducks.getJSONObject(0).getString("name");
+                    item_list.clear();
+
+                    for (int i =0;i<liste.length();i++){
+                        item_list.add(liste.getJSONObject(i).getJSONObject("value").getJSONObject("name").getString("fr"));
+                    }
+
+                    if (!item_list.isEmpty()){
+                        // Create an ArrayAdapter from List
+                        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(ListeActivity.this, android.R.layout.simple_list_item_1, item_list);
+
+                        // DataBind ListView with items from ArrayAdapter
+                        mListView.setAdapter(arrayAdapter);
+
+                        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                                takePictureIntent();
+                            }
+                        });
                     }
 
                 } catch (Exception e) {
-                    message = "Erreur de lecture du JSON";
-                } finally {
-                    Log.d(TAG, message);
+                    Log.d(TAG,e.getMessage());
                 }
             }
 

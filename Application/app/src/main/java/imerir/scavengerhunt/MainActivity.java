@@ -325,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                     toast.show();
                 } catch (Exception e) {
                     Toast toast = Toast.makeText(MainActivity.this, "Erreur de lecture du JSON", Toast.LENGTH_LONG);
-                    toast.show();
+                    //toast.show();
                 }
             }
         };
