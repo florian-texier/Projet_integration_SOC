@@ -48,7 +48,7 @@ public class SendPicture extends AppCompatActivity {
     ImageView image;
     RequestQueue mRequestQueue;
 
-    String contURl = "https://routerint.mignolet.fr";
+    String contURl = "http://172.30.1.35:5000";
 
     File imgFile;
 
@@ -70,7 +70,7 @@ public class SendPicture extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                httpPostImage(contURl+"/");
+                httpPostImage(contURl+"/picture");
 
             }
         });
@@ -176,6 +176,7 @@ public class SendPicture extends AppCompatActivity {
         JSONObject postData = new JSONObject();
         try {
             postData.put("id_Equipe", deviceID);
+            postData.put("name",imgFile.getName());
             postData.put("latitute", latitute);
             postData.put("longitude", longitude);
             postData.put("image", image64);
@@ -197,7 +198,6 @@ public class SendPicture extends AppCompatActivity {
         };
 
         Response.ErrorListener onError = new Response.ErrorListener() {
-            @Override
             public void onErrorResponse(VolleyError error) {
                 Toast toast = Toast.makeText(SendPicture.this, "Erreur lors de l'envoi de l'image", Toast.LENGTH_LONG);
                 toast.show();
@@ -213,7 +213,7 @@ public class SendPicture extends AppCompatActivity {
     }
 
     public String jpegTo64(){
-        Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+        Bitmap myBitmap = Bitmap.createScaledBitmap(BitmapFactory.decodeFile(imgFile.getAbsolutePath()),200,200,true);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         myBitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
         byte[] imageBytes = baos.toByteArray();

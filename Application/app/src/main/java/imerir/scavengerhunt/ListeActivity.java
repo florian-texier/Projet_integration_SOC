@@ -44,7 +44,7 @@ public class ListeActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSION = 1;
     static final int REQUEST_IMAGE_CAPTURE = 1;
     protected static final String TAG = "Scavenger Hunt";
-    String contURl = "https://routerint.mignolet.fr";
+    String contURl = "http://172.30.1.35:5000";
 
     ListView mListView;
     Button mSendButton;
@@ -89,7 +89,7 @@ public class ListeActivity extends AppCompatActivity {
                     item_list.clear();
 
                     for (int i =0;i<liste.length();i++){
-                        item_list.add(liste.getJSONObject(i).getJSONObject("value").getJSONObject("name").getString("fr"));
+                        item_list.add(liste.getJSONObject(i).getJSONObject("value").getJSONObject("name").getString("en"));
 
                     }
 
@@ -103,7 +103,8 @@ public class ListeActivity extends AppCompatActivity {
                         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                             @Override
                             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                                takePictureIntent();
+                                String name =mListView.getItemAtPosition(position).toString();
+                                takePictureIntent(name);
                             }
                         });
                     }
@@ -128,7 +129,7 @@ public class ListeActivity extends AppCompatActivity {
 
     }
 
-    private void takePictureIntent() {
+    private void takePictureIntent(String name) {
 
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -136,7 +137,7 @@ public class ListeActivity extends AppCompatActivity {
             // Create the File where the photo should go
             photoFile = null;
             try {
-                photoFile = createImageFile();
+                photoFile = createImageFile(name);
             } catch (IOException ex) {
                 Log.d(TAG, ex.toString());
 
@@ -154,10 +155,11 @@ public class ListeActivity extends AppCompatActivity {
 
     }
 
-    private File createImageFile() throws IOException {
+    private File createImageFile(String name) throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        //String imageFileName = "JPEG_" + timeStamp + "_";
+        String imageFileName = name+"_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
                 imageFileName,  /* prefix */

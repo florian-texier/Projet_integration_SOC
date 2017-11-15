@@ -53,8 +53,14 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     static final int REQUEST_PERMCAM = 1;
     public static final String PREFS = "PREFS";
     SharedPreferences sharedPreferences;
-    String contURl = "https://routerint.mignolet.fr";
+    String contURl = "http://172.30.1.35:5000";
     String id = null;
+    String id2 = null;
+    Region region1;
+    Region region2;
+    boolean inscrit = false;
+    int typeRegion = 1;
+    double distSendBeacon;
 
     private BeaconManager beaconManager;
     RequestQueue mRequestQueue;
@@ -94,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
         mTextView = findViewById(R.id.textView);
         mDistance = findViewById(R.id.distance);
+
+        postHttpRequest(contURl+"/team");
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -156,6 +164,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout(iBeaconLayout));
 
         beaconManager.bind(this);
+        postHttpRequest(contURl+"/team");
+
     }
 
     @Override
@@ -184,17 +194,32 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                 for (Beacon beacon : collection) {
                     Log.i(TAG, "Detected beacon : " + beacon.getId1());
                     Log.i(TAG, "Detected beacon @ distance " + beacon.getDistance());
-                    final double dist = beacon.getDistance();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mDistance.setText(Double.toString(dist));
+                    if (typeRegion == 1){
+                        final double dist = beacon.getDistance();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mDistance.setText(Double.toString(dist));
+                            }
+                        });
+                        if (inscrit){
+                            getHttpRequest(contURl+"/beaconSendPicture",2);
+                            switchPager();
                         }
-                    });
-                    if (dist < 3.0){
-                        postHttpRequest(contURl+"/inscript");
-                        switchPager();
+                        else{
+                            if (dist < 3.0){
+                                postHttpRequest(contURl+"/inscript");
+                                getHttpRequest(contURl+"/beaconSendPicture",2);
+                                switchPager();
+                            }
+                        }
                     }
+                    else{
+                        distSendBeacon = beacon.getDistance();
+
+                    }
+
+
                 }
             }
         });
@@ -214,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                 Log.i(TAG, "didDetermineStateForRegion = " + i);
             }
         });
-            getHttpRequest(contURl+"/beaconInscript");
+        getHttpRequest(contURl+"/beaconInscript",1);
 
     }
 
@@ -274,8 +299,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         }
     }
 
-    void getHttpRequest(String url) {
-        String endpointUrl = url;
+    void getHttpRequest(String url,final int requestType) {
         Log.d(TAG,url);
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
@@ -283,10 +307,24 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             public void onResponse(JSONObject response) {
                 Log.d(TAG, response.toString());
                 try {
-                    id = response.getJSONObject("message").getString("uid");
-                    Region region = new Region("Totorama", Identifier.parse(id), null, null);
-                    beaconManager.startMonitoringBeaconsInRegion(region);
-                    beaconManager.startRangingBeaconsInRegion(region);
+                    if (requestType == 1){
+                        typeRegion =1;
+                        id = response.getJSONObject("message").getString("uid");
+                        region1 = new Region("Totorama", Identifier.parse(id), null, null);
+                        beaconManager.startMonitoringBeaconsInRegion(region1);
+                        beaconManager.startRangingBeaconsInRegion(region1);
+                    }
+                    if (requestType == 2){
+                        typeRegion = 2;
+                        id2 = response.getJSONObject("message").getString("uid");
+                        region2 = new Region("Totorama", Identifier.parse(id), null, null);
+                        beaconManager.stopMonitoringBeaconsInRegion(region1);
+                        beaconManager.stopRangingBeaconsInRegion(region1);
+                        beaconManager.startMonitoringBeaconsInRegion(region2);
+                        beaconManager.startRangingBeaconsInRegion(region2);
+                    }
+
+
                 } catch (JSONException e) {
                     Log.e(TAG, e.getMessage());
                 } catch (RemoteException e) {
@@ -304,20 +342,18 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             }
         };
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, endpointUrl, null, onSuccess, onError);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, onSuccess, onError);
 
         mRequestQueue.add(request);
 
     }
 
-    void postHttpRequest(String url) {
-        String endpointUrl =url;
-
+    void postHttpRequest(final String url) {
         JSONObject postData = new JSONObject();
         try {
             postData.put("id", getDeviceId(this));
         } catch (Exception e) {
-            // do nothing
+            Log.e(TAG,e.getMessage());
         }
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
@@ -328,9 +364,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                     int sum = response.getInt("sum");
                     Toast toast = Toast.makeText(MainActivity.this, "Sum = " + sum, Toast.LENGTH_LONG);
                     toast.show();
+                    if (url.contains("team")){
+                        inscrit = true;
+                    }
                 } catch (Exception e) {
                     Toast toast = Toast.makeText(MainActivity.this, "Erreur de lecture du JSON", Toast.LENGTH_LONG);
-                    //toast.show();
+                    toast.show();
                 }
             }
         };
@@ -338,11 +377,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+
                 Log.d(TAG,"Erreur lors de la requête");
             }
         };
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, endpointUrl, postData, onSuccess, onError);
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, postData, onSuccess, onError);
 
         mRequestQueue.add(request);
     }
@@ -357,9 +397,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     void switchPager(){
-        finish();
-
+        mCamera.stop();
         Intent i = new Intent(MainActivity.this, ListeActivity.class);
         MainActivity.this.startActivity(i);
+    }
+
+    public double getDistSendBeacon() {
+        return distSendBeacon;
     }
 }
