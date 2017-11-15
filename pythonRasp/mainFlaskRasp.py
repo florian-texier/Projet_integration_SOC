@@ -1,11 +1,8 @@
-#-*- encoding:utf-8 -*-
+from flask import Flask
+from flask import request
 from time import sleep
 import datetime
 from sense_hat import SenseHat
-import os, urlparse
-import paho.mqtt.client as mqtt
-import json
-
 
 #init SenseHAT
 sense = SenseHat()

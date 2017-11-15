@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.RemoteException;
@@ -44,11 +45,14 @@ import android.widget.Toast;
 
 import java.util.Collection;
 
+
 public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     private static final int REQUEST_PERMISSION = 1;
     protected static final String TAG = "Scavenger Hunt";
     static final int REQUEST_PERMCAM = 1;
+    public static final String PREFS = "PREFS";
+    SharedPreferences sharedPreferences;
     String contURl = "https://routerint.mignolet.fr";
     String id = null;
 
@@ -86,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         setContentView(R.layout.activity_main);
 
         mRequestQueue = Volley.newRequestQueue(this);
+        sharedPreferences = getBaseContext().getSharedPreferences(PREFS, MODE_PRIVATE);
 
         mTextView = findViewById(R.id.textView);
         mDistance = findViewById(R.id.distance);
@@ -342,9 +347,11 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         mRequestQueue.add(request);
     }
 
-    public static String getDeviceId(Context context) {
+    public String getDeviceId(Context context) {
         String androidId = Settings.Secure.getString(context.getContentResolver(),Settings.Secure.ANDROID_ID) + Build.SERIAL;
         Log.d(TAG,androidId);
+
+        sharedPreferences.edit().putString("DeviceID",androidId).apply();
         return androidId;
 
     }
