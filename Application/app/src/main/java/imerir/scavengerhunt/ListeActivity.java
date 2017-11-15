@@ -62,9 +62,10 @@ public class ListeActivity extends AppCompatActivity {
 
         mListView = findViewById(R.id.itemList);
         mSendButton = findViewById(R.id.sendButton);
+        item_list = new ArrayList<>();
 
         getHttpRequest(contURl+"/liste");
-        item_list = new ArrayList<>();
+
 
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -89,6 +90,7 @@ public class ListeActivity extends AppCompatActivity {
 
                     for (int i =0;i<liste.length();i++){
                         item_list.add(liste.getJSONObject(i).getJSONObject("value").getJSONObject("name").getString("fr"));
+
                     }
 
                     if (!item_list.isEmpty()){
