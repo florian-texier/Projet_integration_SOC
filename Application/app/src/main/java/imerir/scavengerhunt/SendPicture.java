@@ -49,6 +49,7 @@ public class SendPicture extends AppCompatActivity {
     RequestQueue mRequestQueue;
     File imgFile;
     infDistance infoDistance;
+    boolean pictureSelected;
 
     void displayText() {
         runOnUiThread(new Runnable() {
@@ -72,6 +73,7 @@ public class SendPicture extends AppCompatActivity {
 
         infoDistance = infDistance.getInstance();
 
+        pictureSelected = false;
 
         sendPicture.setEnabled(false);
 
@@ -79,7 +81,8 @@ public class SendPicture extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                httpPostImage(contURl+"/picture");
+               // httpPostImage(contURl+"/picture");
+                httpPostImage("http://172.30.1.35:5000/Classifier");
 
             }
         });
@@ -103,7 +106,7 @@ public class SendPicture extends AppCompatActivity {
                             @Override
                             public void run() {
                                 mDistance.setText(format("%.2f", infoDistance.getDistance()) + " m");
-                                if (infoDistance.getDistance()<3.0){
+                                if (infoDistance.getDistance()<3.0 && pictureSelected){
                                     sendPicture.setEnabled(true);
                                 }
                                 else{
@@ -157,6 +160,7 @@ public class SendPicture extends AppCompatActivity {
                         Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
 
                         image.setImageBitmap(myBitmap);
+                        pictureSelected = true;
 
                     }
                 }
