@@ -80,7 +80,7 @@ public class SendPicture extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-               httpPostImage(contURl+"/picture");
+                httpPostImage(contURl+"/picture");
 
             }
         });
