@@ -26,7 +26,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
-import org.altbeacon.beacon.BeaconManager;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -81,8 +80,7 @@ public class SendPicture extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-               // httpPostImage(contURl+"/picture");
-                httpPostImage("http://172.30.1.35:5000/Classifier");
+               httpPostImage(contURl+"/picture");
 
             }
         });
@@ -253,8 +251,7 @@ public class SendPicture extends AppCompatActivity {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         myBitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
         byte[] imageBytes = baos.toByteArray();
-        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-        return encodedImage;
+        return Base64.encodeToString(imageBytes, Base64.DEFAULT);
     }
 
 }

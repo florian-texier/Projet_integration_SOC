@@ -213,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                             if (dist < 3.0){
                                 postHttpRequest(contURl+"/inscript");
                                 getHttpRequest(contURl+"/beaconSendPicture",2);
+                                postHttpRequest(contURl+"/team");
                                 switchPager();
                             }
                         }
@@ -295,6 +296,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             String url = barcodes.valueAt(0).displayValue;
             displayText(url);
             postHttpRequest(url);
+            getHttpRequest(contURl+"/beaconSendPicture",2);
+            postHttpRequest(contURl+"/team");
             switchPager();
 
 
@@ -353,6 +356,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     void postHttpRequest(final String url) {
+        Log.d(TAG,url);
         JSONObject postData = new JSONObject();
         try {
             postData.put("id", getDeviceId(this));
@@ -365,9 +369,10 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             public void onResponse(JSONObject response) {
                 String message = "";
                 try {
-                    int sum = response.getInt("sum");
-                    Toast toast = Toast.makeText(MainActivity.this, "Sum = " + sum, Toast.LENGTH_LONG);
-                    toast.show();
+                    Log.d(TAG,response.toString());
+                    if (url.contains("team")){
+                        inscrit = true;
+                    }
 
                 } catch (Exception e) {
                     Log.e(TAG,e.getMessage());
@@ -378,9 +383,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                if (url.contains("team")){
-                    inscrit = true;
-                }
+
                 Log.d(TAG,"Erreur lors de la requête");
             }
         };
