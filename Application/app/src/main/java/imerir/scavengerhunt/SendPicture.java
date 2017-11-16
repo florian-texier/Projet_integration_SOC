@@ -7,9 +7,9 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.media.ExifInterface;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
@@ -35,23 +35,29 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 
 import static imerir.scavengerhunt.MainActivity.PREFS;
+import static imerir.scavengerhunt.MainActivity.TAG;
+import static imerir.scavengerhunt.MainActivity.contURl;
+import static java.lang.String.format;
 
 public class SendPicture extends AppCompatActivity {
 
     private static final int FILE_SELECT_CODE = 0;
-    protected static final String TAG = "Scavenger Hunt";
-
-    private BeaconManager beaconManager;
     TextView mDistance;
     Button select;
     Button sendPicture;
     ImageView image;
     RequestQueue mRequestQueue;
-
-    String contURl = "http://172.30.1.35:5000";
-
     File imgFile;
+    infDistance infoDistance;
 
+    void displayText() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mDistance.setText(Double.toString(infoDistance.getDistance()));
+            }
+        });
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,9 +65,12 @@ public class SendPicture extends AppCompatActivity {
         setContentView(R.layout.activity_send_picture);
         select = findViewById(R.id.selectpicture);
         sendPicture = findViewById(R.id.button2);
+        mDistance = findViewById(R.id.dist);
         image = findViewById(R.id.imageView);
 
         mRequestQueue = Volley.newRequestQueue(this);
+
+        infoDistance = infDistance.getInstance();
 
 
         sendPicture.setEnabled(false);
@@ -83,6 +92,32 @@ public class SendPicture extends AppCompatActivity {
 
             }
         });
+        Thread t = new Thread() {
+
+            @Override
+            public void run() {
+                try {
+                    while (!isInterrupted()) {
+                        Thread.sleep(1000);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mDistance.setText(format("%.2f", infoDistance.getDistance()) + " m");
+                                if (infoDistance.getDistance()<3.0){
+                                    sendPicture.setEnabled(true);
+                                }
+                                else{
+                                    sendPicture.setEnabled(false);
+                                }
+                            }
+                        });
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        };
+
+        t.start();
     }
 
     private void showFileChooser() {
@@ -123,35 +158,11 @@ public class SendPicture extends AppCompatActivity {
 
                         image.setImageBitmap(myBitmap);
 
-                        sendPicture.setEnabled(true);
-
                     }
                 }
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    public static String getPath(Context context, Uri uri) throws URISyntaxException {
-        if ("content".equalsIgnoreCase(uri.getScheme())) {
-            String[] projection = { "_data" };
-            Cursor cursor = null;
-
-            try {
-                cursor = context.getContentResolver().query(uri, projection, null, null, null);
-                int column_index = cursor.getColumnIndexOrThrow("_data");
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(column_index);
-                }
-            } catch (Exception e) {
-                // Eat it
-            }
-        }
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-
-        return null;
     }
 
     void httpPostImage(String url) {
@@ -172,11 +183,12 @@ public class SendPicture extends AppCompatActivity {
 
         String image64 = jpegTo64();
 
+        String[] splitString = imgFile.getName().split("_");
 
         JSONObject postData = new JSONObject();
         try {
             postData.put("id_Equipe", deviceID);
-            postData.put("name",imgFile.getName());
+            postData.put("name",splitString[0]);
             postData.put("latitute", latitute);
             postData.put("longitude", longitude);
             postData.put("image", image64);
@@ -211,7 +223,27 @@ public class SendPicture extends AppCompatActivity {
         request.setRetryPolicy(new DefaultRetryPolicy(10000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         mRequestQueue.add(request);
     }
+    public static String getPath(Context context, Uri uri) throws URISyntaxException {
+        if ("content".equalsIgnoreCase(uri.getScheme())) {
+            String[] projection = { "_data" };
+            Cursor cursor;
 
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                int column_index = cursor.getColumnIndexOrThrow("_data");
+                if (cursor.moveToFirst()) {
+                    return cursor.getString(column_index);
+                }
+            } catch (Exception e) {
+                // Eat it
+            }
+        }
+        else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+
+        return null;
+    }
     public String jpegTo64(){
         Bitmap myBitmap = Bitmap.createScaledBitmap(BitmapFactory.decodeFile(imgFile.getAbsolutePath()),200,200,true);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

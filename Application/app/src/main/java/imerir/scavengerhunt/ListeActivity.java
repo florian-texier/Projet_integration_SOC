@@ -4,17 +4,18 @@ package imerir.scavengerhunt;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
-import android.support.media.ExifInterface;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.media.ExifInterface;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -30,6 +31,7 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -39,12 +41,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static imerir.scavengerhunt.MainActivity.PREFS;
+import static imerir.scavengerhunt.MainActivity.TAG;
+import static imerir.scavengerhunt.MainActivity.contURl;
+
+
+
 public class ListeActivity extends AppCompatActivity {
 
     private static final int REQUEST_PERMISSION = 1;
     static final int REQUEST_IMAGE_CAPTURE = 1;
-    protected static final String TAG = "Scavenger Hunt";
-    String contURl = "http://172.30.1.35:5000";
+    SharedPreferences sharedPreferences;
 
     ListView mListView;
     Button mSendButton;
@@ -59,6 +66,7 @@ public class ListeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_liste);
 
         mRequestQueue = Volley.newRequestQueue(this);
+        sharedPreferences = getBaseContext().getSharedPreferences(PREFS, MODE_PRIVATE);
 
         mListView = findViewById(R.id.itemList);
         mSendButton = findViewById(R.id.sendButton);
@@ -85,7 +93,6 @@ public class ListeActivity extends AppCompatActivity {
                 Log.d(TAG,response.toString());
                 try {
                     JSONArray liste = response.getJSONObject("message").getJSONArray("liste");
-
                     item_list.clear();
 
                     for (int i =0;i<liste.length();i++){
@@ -94,6 +101,7 @@ public class ListeActivity extends AppCompatActivity {
                     }
 
                     if (!item_list.isEmpty()){
+                        sharedPreferences.edit().putString("json",liste.toString()).apply();
                         // Create an ArrayAdapter from List
                         final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(ListeActivity.this, android.R.layout.simple_list_item_1, item_list);
 
@@ -119,6 +127,35 @@ public class ListeActivity extends AppCompatActivity {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                try {
+                    JSONArray liste = new JSONArray(sharedPreferences.getString("json",null));
+                    item_list.clear();
+
+                    for (int i =0;i<liste.length();i++){
+                        item_list.add(liste.getJSONObject(i).getJSONObject("value").getJSONObject("name").getString("en"));
+
+                    }
+
+                    if (!item_list.isEmpty()){
+                        sharedPreferences.edit().putString("json",liste.toString()).apply();
+                        // Create an ArrayAdapter from List
+                        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(ListeActivity.this, android.R.layout.simple_list_item_1, item_list);
+
+                        // DataBind ListView with items from ArrayAdapter
+                        mListView.setAdapter(arrayAdapter);
+
+                        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                                String name =mListView.getItemAtPosition(position).toString();
+                                takePictureIntent(name);
+                            }
+                        });
+                    }
+
+                } catch (JSONException e) {
+                    Log.e(TAG,e.getMessage());
+                }
                 Log.d(TAG, "Erreur lors de la requête");
             }
         };
@@ -175,6 +212,7 @@ public class ListeActivity extends AppCompatActivity {
 
     void switchPager() {
         finish();
+
 
         Intent i = new Intent(ListeActivity.this, SendPicture.class);
         ListeActivity.this.startActivity(i);

@@ -7,15 +7,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -23,7 +24,6 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -37,13 +37,12 @@ import org.altbeacon.beacon.Identifier;
 import org.altbeacon.beacon.MonitorNotifier;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.widget.Toast;
-
 import java.util.Collection;
+
+import static java.lang.String.format;
 
 
 public class MainActivity extends AppCompatActivity implements BeaconConsumer {
@@ -53,11 +52,14 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     static final int REQUEST_PERMCAM = 1;
     public static final String PREFS = "PREFS";
     SharedPreferences sharedPreferences;
-    String contURl = "http://172.30.1.35:5000";
+    public static final String contURl = "https://routerint.mignolet.fr";
+    //public static final String contURl = "http://172.30.1.35:5000";
+
     String id = null;
     String id2 = null;
     Region region1;
     Region region2;
+    infDistance infoDistance;
     boolean inscrit = false;
     int typeRegion = 1;
     double distSendBeacon;
@@ -94,6 +96,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        infoDistance = infDistance.getInstance();
 
         mRequestQueue = Volley.newRequestQueue(this);
         sharedPreferences = getBaseContext().getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -170,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
 
     @Override
     protected void onPause() {
-        beaconManager.unbind(this);
         super.onPause();
     }
 
@@ -199,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mDistance.setText(Double.toString(dist));
+                                mDistance.setText(format("%.2f", dist) + " m");
                             }
                         });
                         if (inscrit){
@@ -216,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                     }
                     else{
                         distSendBeacon = beacon.getDistance();
+                        infoDistance.setDistance(distSendBeacon);
 
                     }
 
@@ -364,12 +368,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                     int sum = response.getInt("sum");
                     Toast toast = Toast.makeText(MainActivity.this, "Sum = " + sum, Toast.LENGTH_LONG);
                     toast.show();
-                    if (url.contains("team")){
-                        inscrit = true;
-                    }
+
                 } catch (Exception e) {
-                    Toast toast = Toast.makeText(MainActivity.this, "Erreur de lecture du JSON", Toast.LENGTH_LONG);
-                    toast.show();
+                    Log.e(TAG,e.getMessage());
                 }
             }
         };
@@ -377,7 +378,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-
+                if (url.contains("team")){
+                    inscrit = true;
+                }
                 Log.d(TAG,"Erreur lors de la requête");
             }
         };
@@ -402,7 +405,4 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         MainActivity.this.startActivity(i);
     }
 
-    public double getDistSendBeacon() {
-        return distSendBeacon;
-    }
 }
