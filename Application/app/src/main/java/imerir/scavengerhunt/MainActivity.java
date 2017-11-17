@@ -381,7 +381,6 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                String message = "";
                 try {
                     Log.i(TAG,response.toString());
                     if (url.contains("team")){
