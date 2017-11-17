@@ -1,12 +1,17 @@
 package imerir.scavengerhunt;
 
+import android.Manifest;
+import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.media.ExifInterface;
 import android.support.v7.app.AppCompatActivity;
@@ -25,6 +30,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.vision.CameraSource;
+import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import org.json.JSONObject;
 
@@ -44,20 +51,12 @@ public class SendPicture extends AppCompatActivity {
     TextView mDistance;
     Button select;
     Button sendPicture;
+    Button back;
     ImageView image;
     RequestQueue mRequestQueue;
     File imgFile;
-    infDistance infoDistance;
+    infoPeriph infoPeri;
     boolean pictureSelected;
-
-    void displayText() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mDistance.setText(Double.toString(infoDistance.getDistance()));
-            }
-        });
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,10 +66,11 @@ public class SendPicture extends AppCompatActivity {
         sendPicture = findViewById(R.id.button2);
         mDistance = findViewById(R.id.dist);
         image = findViewById(R.id.imageView);
+        back = findViewById(R.id.backButton);
 
         mRequestQueue = Volley.newRequestQueue(this);
 
-        infoDistance = infDistance.getInstance();
+        infoPeri = infoPeriph.getInstance();
 
         pictureSelected = false;
 
@@ -80,6 +80,8 @@ public class SendPicture extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
+                Toast toast = Toast.makeText(SendPicture.this, "Envoie de la photo, merci de patienter ", Toast.LENGTH_LONG);
+                toast.show();
                 httpPostImage(contURl+"/picture");
 
             }
@@ -93,6 +95,15 @@ public class SendPicture extends AppCompatActivity {
 
             }
         });
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                switchPager();
+
+            }
+        });
+
         Thread t = new Thread() {
 
             @Override
@@ -103,17 +114,29 @@ public class SendPicture extends AppCompatActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mDistance.setText(format("%.2f", infoDistance.getDistance()) + " m");
-                                if (infoDistance.getDistance()<3.0 && pictureSelected){
-                                    sendPicture.setEnabled(true);
+                                mDistance.setText(format("%.2f", infoPeri.getDistance()) + " m");
+                                if (infoPeri.getDistance()<3.0){
+                                    mDistance.setTextColor(Color.GREEN);
+                                    if (pictureSelected){
+                                        sendPicture.setEnabled(true);
+                                    }
+                                    else{
+                                        sendPicture.setEnabled(false);
+                                    }
+                                }
+                                else if (infoPeri.getDistance() == 50.0){
+                                    mDistance.setText("");
                                 }
                                 else{
+                                    mDistance.setTextColor(Color.RED);
                                     sendPicture.setEnabled(false);
+
                                 }
                             }
                         });
                     }
                 } catch (InterruptedException e) {
+                    Log.e(TAG,e.getMessage());
                 }
             }
         };
@@ -142,13 +165,13 @@ public class SendPicture extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     // Get the Uri of the selected file
                     Uri uri = data.getData();
-                    Log.d(TAG, "File Uri: " + uri.toString());
+                    Log.i(TAG, "File Uri: " + uri.toString());
                     // Get the path
                     String path = null;
                     try {
                         path = getPath(this, uri);
                     } catch (URISyntaxException e) {
-                        Log.d(TAG, e.getMessage());                    }
+                        Log.e(TAG, e.getMessage());                    }
                     Log.d(TAG, "File Path: " + path);
 
                     imgFile = new File(path);
@@ -213,9 +236,9 @@ public class SendPicture extends AppCompatActivity {
 
         Response.ErrorListener onError = new Response.ErrorListener() {
             public void onErrorResponse(VolleyError error) {
-                Toast toast = Toast.makeText(SendPicture.this, "Erreur lors de l'envoi de l'image", Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(SendPicture.this, "Image incorrect", Toast.LENGTH_LONG);
                 toast.show();
-                Log.e("Message Recu :","Erreur lors de la requête");
+                Log.i("Message Recu :","Erreur lors de la requête");
             }
         };
 
@@ -237,7 +260,7 @@ public class SendPicture extends AppCompatActivity {
                     return cursor.getString(column_index);
                 }
             } catch (Exception e) {
-                // Eat it
+                Log.e(TAG,e.getMessage());
             }
         }
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
@@ -252,6 +275,12 @@ public class SendPicture extends AppCompatActivity {
         myBitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
         byte[] imageBytes = baos.toByteArray();
         return Base64.encodeToString(imageBytes, Base64.DEFAULT);
+    }
+
+    void switchPager() {
+        finish();
+        Intent i = new Intent(SendPicture.this, ListeActivity.class);
+        SendPicture.this.startActivity(i);
     }
 
 }

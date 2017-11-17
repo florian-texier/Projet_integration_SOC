@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -16,7 +17,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -52,14 +52,15 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     static final int REQUEST_PERMCAM = 1;
     public static final String PREFS = "PREFS";
     SharedPreferences sharedPreferences;
-    public static final String contURl = "https://routerint.mignolet.fr";
+    public static final String contURl = "http://51.254.121.94:4000";
+    //public static final String contURl = "https://routerint.mignolet.fr";
     //public static final String contURl = "http://172.30.1.35:5000";
 
     String id = null;
     String id2 = null;
     Region region1;
     Region region2;
-    infDistance infoDistance;
+    infoPeriph infoPeri;
     boolean inscrit = false;
     int typeRegion = 1;
     double distSendBeacon;
@@ -81,8 +82,8 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     // Model Components
-    BarcodeDetector mDetector;
-    CameraSource mCamera;
+    public static BarcodeDetector mDetector;
+    public static CameraSource mCamera;
 
 
     @Override
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        infoDistance = infDistance.getInstance();
+        infoPeri = infoPeriph.getInstance();
 
         mRequestQueue = Volley.newRequestQueue(this);
         sharedPreferences = getBaseContext().getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -202,7 +203,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                mDistance.setTextColor(Color.RED);
                                 mDistance.setText(format("%.2f", dist) + " m");
+
                             }
                         });
                         if (inscrit){
@@ -220,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
                     }
                     else{
                         distSendBeacon = beacon.getDistance();
-                        infoDistance.setDistance(distSendBeacon);
+                        infoPeri.setDistance(distSendBeacon);
 
                     }
 
@@ -295,24 +298,30 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         if (barcodes.size() != 0) {
             String url = barcodes.valueAt(0).displayValue;
             displayText(url);
-            postHttpRequest(url);
-            getHttpRequest(contURl+"/beaconSendPicture",2);
-            postHttpRequest(contURl+"/team");
-            switchPager();
+            if (inscrit){
+                getHttpRequest(contURl+"/beaconSendPicture",2);
+                switchPager();
+            }
+            else{
 
+                postHttpRequest(contURl+"/inscript");
+                getHttpRequest(contURl+"/beaconSendPicture",2);
+                postHttpRequest(contURl+"/team");
+                switchPager();
 
+            }
         } else {
             displayText("No barcode detected.");
         }
     }
 
     void getHttpRequest(String url,final int requestType) {
-        Log.d(TAG,url);
+        Log.i(TAG,url);
 
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Log.d(TAG, response.toString());
+                Log.i(TAG, response.toString());
                 try {
                     if (requestType == 1){
                         typeRegion =1;
@@ -344,8 +353,13 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
         Response.ErrorListener onError = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d(TAG,error.getMessage());
-                Log.d(TAG,"Erreur lors de la requête");
+                try{
+                    Log.e(TAG,error.getMessage());
+                    Log.i(TAG,"Erreur lors de la requête");
+                }catch (NullPointerException e){
+                    Log.e(TAG,e.getMessage());
+                }
+
             }
         };
 
@@ -356,7 +370,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     void postHttpRequest(final String url) {
-        Log.d(TAG,url);
+        Log.i(TAG,url);
         JSONObject postData = new JSONObject();
         try {
             postData.put("id", getDeviceId(this));
@@ -369,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             public void onResponse(JSONObject response) {
                 String message = "";
                 try {
-                    Log.d(TAG,response.toString());
+                    Log.i(TAG,response.toString());
                     if (url.contains("team")){
                         inscrit = true;
                     }
@@ -384,7 +398,12 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
             @Override
             public void onErrorResponse(VolleyError error) {
 
-                Log.d(TAG,"Erreur lors de la requête");
+                try{
+                    Log.e(TAG,error.getMessage());
+                    Log.i(TAG,"Erreur lors de la requête");
+                }catch (NullPointerException e){
+                    Log.e(TAG,e.getMessage());
+                }
             }
         };
 
@@ -403,9 +422,9 @@ public class MainActivity extends AppCompatActivity implements BeaconConsumer {
     }
 
     void switchPager(){
-        mCamera.stop();
         Intent i = new Intent(MainActivity.this, ListeActivity.class);
         MainActivity.this.startActivity(i);
+
     }
 
 }

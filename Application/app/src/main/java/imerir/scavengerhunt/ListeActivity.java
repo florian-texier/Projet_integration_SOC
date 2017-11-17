@@ -44,13 +44,13 @@ import java.util.List;
 import static imerir.scavengerhunt.MainActivity.PREFS;
 import static imerir.scavengerhunt.MainActivity.TAG;
 import static imerir.scavengerhunt.MainActivity.contURl;
-
-
+import static imerir.scavengerhunt.MainActivity.mCamera;
 
 public class ListeActivity extends AppCompatActivity {
 
     private static final int REQUEST_PERMISSION = 1;
     static final int REQUEST_IMAGE_CAPTURE = 1;
+
     SharedPreferences sharedPreferences;
 
     ListView mListView;
@@ -64,7 +64,7 @@ public class ListeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_liste);
-
+        mCamera.stop();
         mRequestQueue = Volley.newRequestQueue(this);
         sharedPreferences = getBaseContext().getSharedPreferences(PREFS, MODE_PRIVATE);
 
@@ -90,7 +90,7 @@ public class ListeActivity extends AppCompatActivity {
         Response.Listener<JSONObject> onSuccess = new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Log.d(TAG,response.toString());
+                Log.i(TAG,response.toString());
                 try {
                     JSONArray liste = response.getJSONObject("message").getJSONArray("liste");
                     item_list.clear();
@@ -176,7 +176,7 @@ public class ListeActivity extends AppCompatActivity {
             try {
                 photoFile = createImageFile(name);
             } catch (IOException ex) {
-                Log.d(TAG, ex.toString());
+                Log.i(TAG, ex.toString());
 
             }
             // Continue only if the File was successfully created
@@ -195,7 +195,6 @@ public class ListeActivity extends AppCompatActivity {
     private File createImageFile(String name) throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        //String imageFileName = "JPEG_" + timeStamp + "_";
         String imageFileName = name+"_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
@@ -211,9 +210,6 @@ public class ListeActivity extends AppCompatActivity {
 
 
     void switchPager() {
-        finish();
-
-
         Intent i = new Intent(ListeActivity.this, SendPicture.class);
         ListeActivity.this.startActivity(i);
     }
