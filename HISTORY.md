@@ -43,3 +43,7 @@ Gestion de la scalabilité.
 
 Ajouts de l'envoie de la photo sur le serveur.
 
+## 16/11/2017
+
+Ajouts du logo et de la condition pour l'envoie de photo
+
