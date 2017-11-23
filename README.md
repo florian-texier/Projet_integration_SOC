@@ -6,7 +6,7 @@ Faite un build et un launch ensuite vous pouvez l'utilisé
   https://github.com/florian-texier/Projet_integration_SOC/tree/master/Application
 
 # Base de donner
-Pour installer la base de donnée couchdb rentré cette ligne de commande dans un terminal.
+Pour installer la base de donnée couchdb, rentré cette ligne de commande dans un terminal.
 ```
 docker pull gauthier66/couchdb
 ```
